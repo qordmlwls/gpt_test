@@ -14,6 +14,8 @@ from torch.utils.data import DataLoader, Dataset
 # from transformers.optimization import AdamW, get_cosine_schedule_with_warmup
 import torch.optim as optim
 from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import PreTrainedTokenizerFast, GPT2LMHeadModel
+
 
 parser = argparse.ArgumentParser(description='Simsimi based on KoGPT-2')
 
@@ -34,7 +36,7 @@ parser.add_argument('--model_params',
 
 parser.add_argument('--train',
                     action='store_true',
-                    default=True,
+                    default=False,
                     help='for training')
 
 # parser.add_argument('--gpus',
@@ -57,6 +59,12 @@ PAD = '<pad>'
 TOKENIZER = AutoTokenizer.from_pretrained("EleutherAI/polyglot-ko-1.3b",
             bos_token=BOS, eos_token=EOS, unk_token='<unk>',
             pad_token=PAD, mask_token=MASK) 
+
+# TOKENIZER = AutoTokenizer.from_pretrained("skt/kogpt2-base-v2",
+#             bos_token=BOS, eos_token=EOS, unk_token='<unk>',
+#             pad_token=PAD, mask_token=MASK) 
+
+TOKENIZER.add_special_tokens({'additional_special_tokens':['<|sept|>', U_TKN, S_TKN]})
 
 def preprocess(data, bos_token, sept_token, answer):
   protagonist = data['characters'][0]['id']
@@ -213,8 +221,8 @@ class KoGPT2Chat(LightningModule):
         # self.args = hparams
         self.args = hparams
         self.neg = -1e18
-        # self.kogpt2 = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2')
-        self.kogpt2 = AutoModelForCausalLM.from_pretrained("EleutherAI/polyglot-ko-1.3b")
+        self.kogpt2 = GPT2LMHeadModel.from_pretrained('skt/kogpt2-base-v2')
+        # self.kogpt2 = AutoModelForCausalLM.from_pretrained("EleutherAI/polyglot-ko-1.3b")
         self.loss_function = torch.nn.CrossEntropyLoss(reduction='none')
 
     @staticmethod
@@ -304,7 +312,7 @@ class KoGPT2Chat(LightningModule):
     # def chat(self, sent='0'):
     def chat(self):
         tok = TOKENIZER
-        sent_tokens = tok.tokenize(sent)
+        # sent_tokens = tok.tokenize(sent)
         with torch.no_grad():
             while 1:
                 q = input('user > ').strip()
@@ -347,6 +355,8 @@ if __name__ == "__main__":
         args.max_epochs = 3
         args.amp_level = 'apex'
         args.accelerator='dp' if torch.cuda.is_available() else None
+        args.max_len = 16
+        args.batch_size = 50
         model = KoGPT2Chat(args)
         model.train()
         trainer = Trainer.from_argparse_args(
@@ -356,5 +366,7 @@ if __name__ == "__main__":
         trainer.fit(model)
         logging.info('best model path {}'.format(checkpoint_callback.best_model_path))
     if args.chat:
-        model = KoGPT2Chat.load_from_checkpoint(args.model_params)
+        args.model_params = 'model_chp/last.ckpt'
+        model = KoGPT2Chat(args)
+        model = model.load_from_checkpoint(args.model_params, hparams=args.__dict__)
         model.chat()
