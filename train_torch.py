@@ -60,7 +60,7 @@ TOKENIZER = AutoTokenizer.from_pretrained("EleutherAI/polyglot-ko-1.3b",
             bos_token=BOS, eos_token=EOS, unk_token='<unk>',
             pad_token=PAD, mask_token=MASK) 
 
-# TOKENIZER = AutoTokenizer.from_pretrained("skt/kogpt2-base-v2",
+# TOKENIZER = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
 #             bos_token=BOS, eos_token=EOS, unk_token='<unk>',
 #             pad_token=PAD, mask_token=MASK) 
 
