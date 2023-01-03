@@ -1,3 +1,6 @@
 lightning_logs
 model_chp
 drive/chat
+drive/chat/
+
+*.pt

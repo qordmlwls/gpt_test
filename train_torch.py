@@ -56,13 +56,14 @@ MASK = '<unused0>'
 SENT = '<unused1>'
 PAD = '<pad>'
 
-TOKENIZER = AutoTokenizer.from_pretrained("EleutherAI/polyglot-ko-1.3b",
-            bos_token=BOS, eos_token=EOS, unk_token='<unk>',
-            pad_token=PAD, mask_token=MASK) 
-
-# TOKENIZER = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
+# TOKENIZER = AutoTokenizer.from_pretrained("EleutherAI/polyglot-ko-1.3b",
 #             bos_token=BOS, eos_token=EOS, unk_token='<unk>',
 #             pad_token=PAD, mask_token=MASK) 
+
+TOKENIZER = PreTrainedTokenizerFast.from_pretrained("skt/kogpt2-base-v2",
+            bos_token=BOS, eos_token=EOS, unk_token='<unk>',
+            pad_token=PAD, mask_token=MASK) 
+TOKENIZER.bos_token_id = 51199  # kogpt2일경우 max size가 51200인데 51200으로 하면 인덱스가 넘어가는 assertion error가 뜬다.
 
 TOKENIZER.add_special_tokens({'additional_special_tokens':['<|sept|>', U_TKN, S_TKN]})
 
@@ -255,6 +256,7 @@ class KoGPT2Chat(LightningModule):
 
     def training_step(self, batch, batch_idx):
         token_ids, mask, label = batch
+        token_ids = torch.clamp(token_ids, max=51199)  # kogpt2일경우 index벗어나는 Assertion error 방지 위해
         out = self(token_ids)
         mask_3d = mask.unsqueeze(dim=2).repeat_interleave(repeats=out.shape[2], dim=2)
         mask_out = torch.where(mask_3d == 1, out, self.neg * torch.ones_like(out))
@@ -323,6 +325,7 @@ class KoGPT2Chat(LightningModule):
                     input_ids = torch.LongTensor(tok.encode(U_TKN + q + \
                                                             # SENT + sent + \
                                                             S_TKN + a)).unsqueeze(dim=0)
+                    input_ids = torch.clamp(input_ids, max=51199)
                     pred = self(input_ids)
                     gen = tok.convert_ids_to_tokens(
                         torch.argmax(
