@@ -3,7 +3,7 @@
 - The research process can be seen here: https://www.notion.so/toy-project-Chatbot-with-GPT-6fa08edd35c2442ebb2d3fa92e85b4df
 
 ## Directory Structure
-<img width="942" alt="Screenshot 2022-12-30 at 2 09 11 PM" src="https://user-images.githubusercontent.com/43153661/210163319-2983750e-0fcf-4eb7-bf9a-c3b85b76e0b0.png">
+<img width="1151" alt="image" src="https://user-images.githubusercontent.com/43153661/215898498-003a7a9b-9882-4b48-986a-93fc3b638f67.png">
 
 - [input]
   - movies.csv -> information of movies(title, genre)
