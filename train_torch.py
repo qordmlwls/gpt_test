@@ -3,8 +3,10 @@ import argparse
 import logging
 import os
 import json
+from json.decoder import JSONDecodeError
 
 import numpy as np
+from tqdm import tqdm
 import pandas as pd
 import torch
 from pytorch_lightning import Trainer
@@ -33,7 +35,7 @@ parser.add_argument('--model_params',
                     type=str,
                     default='model_chp/model_-last.ckpt',
                     help='model binary for starting chat')
-
+# 학습시엔 True, 챗봇시엔 False
 parser.add_argument('--train',
                     action='store_true',
                     default=False,
@@ -68,7 +70,8 @@ TOKENIZER.bos_token_id = 51199  # kogpt2일경우 max size가 51200인데 51200�
 TOKENIZER.add_special_tokens({'additional_special_tokens':['<|sept|>', U_TKN, S_TKN]})
 
 def preprocess(data, bos_token, sept_token, answer):
-  protagonist = data['characters'][0]['id']
+  # 회차마다 주인공 위치가 다르니 조정 필요
+  protagonist = data['characters'][1]['id']
   sentences = []
   length = len(data['scenes'][0]['items'])
   scences = data['scenes'][0]['items'].copy()
@@ -140,12 +143,27 @@ def preprocess(data, bos_token, sept_token, answer):
 
 
 sentence_sum = []
-for file in os.listdir('./drive/chat'):
+for idx, file in tqdm(enumerate(os.listdir('./drive/episode_files'))):
   if 'chatie' in file:
-    with open(os.path.join('./drive/chat/', file), 'r') as f:
+    with open(os.path.join('./drive/episode_files/', file), 'r') as f:
       test = f.readline()
-    data = json.loads(test)
-    sentences = preprocess(data, bos_token=BOS, sept_token='<|sept|>', answer=S_TKN)
+    try:
+      data = json.loads(test)
+    except JSONDecodeError:
+      continue
+    if 'draft' in data.keys():
+      continue
+    try:
+      sentences = preprocess(data, bos_token=BOS, sept_token='<|sept|>', answer=S_TKN)
+    except IndexError as e:
+      print(e)
+      print(idx)
+      print(data['characters'])
+      continue
+    # temp
+    if idx == 10:
+      break
+      
     sentence_sum = sentence_sum + sentences
 
 
